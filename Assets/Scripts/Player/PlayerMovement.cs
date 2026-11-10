@@ -1,5 +1,4 @@
 using System.Collections;
-using UnityEditor;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -22,37 +21,36 @@ public class PlayerMovement : MonoBehaviour
     public LayerMask mascaraChao;
 
     [Header("Configurações de Stamina")]
-    public float staminaMaxima = 100f;
+    public float staminaMaximaOriginal = 100f;
+    public float staminaMaximaAtual = 100f;
     public float staminaAtual;
     public float taxaDrenagemStamina = 25f;
     public float taxaRegeneracaoStamina = 15f;
     public float tempoParaRegenerar = 1.5f;
 
-    [Header("UI")]
-    public Slider barraStamina;
+    [Header("Estado de Exaustão (Tela Vermelha)")]
+    public bool telaVermelhaAtiva = false; // Bloqueia a corrida enquanto estiver ativa
+
+    [Header("UI de Estamina")]
+    public Image imagemEstaminaRadial;
     public CanvasGroup painelExaustao;
 
     private Vector3 velocidadeVertical;
     private bool estaNoChao;
     private bool estaCorrendo;
-    private bool jaDisparouExaustao = false;
     private Coroutine corrotinaRegeneracao;
-    private Coroutine corrotinaEfeitoExaustao;
 
     void Start()
     {
-        staminaAtual = staminaMaxima;
-
-        if (barraStamina != null)
-        {
-            barraStamina.maxValue = staminaMaxima;
-            barraStamina.value = staminaAtual;
-        }
+        staminaMaximaAtual = staminaMaximaOriginal;
+        staminaAtual = staminaMaximaAtual;
 
         if (painelExaustao != null)
         {
             painelExaustao.alpha = 0f;
         }
+
+        AtualizarUI();
     }
 
     void Update()
@@ -73,7 +71,8 @@ public class PlayerMovement : MonoBehaviour
         bool querCorrer = Input.GetKey(KeyCode.LeftShift);
         bool estaSeMovimentando = direcao.magnitude >= 0.1f;
 
-        if (querCorrer && estaSeMovimentando && staminaAtual > 0)
+        // Só corre se tiver estamina > 0 E a tela vermelha NÃO estiver ativa
+        if (querCorrer && estaSeMovimentando && staminaAtual > 0 && !telaVermelhaAtiva)
         {
             estaCorrendo = true;
         }
@@ -82,7 +81,6 @@ public class PlayerMovement : MonoBehaviour
             estaCorrendo = false;
         }
 
-        // Executa o gerenciamento de stamina a cada frame
         GerenciarStamina();
 
         // 3. MOVIMENTAÇÃO
@@ -114,9 +112,9 @@ public class PlayerMovement : MonoBehaviour
     }
 
     // ---------------------------------------------------------
-    // MÉTODOS DE STAMINA E EFEITOS (FORA DO UPDATE)
+    // MÉTODOS DE STAMINA E CAFÉ
     // ---------------------------------------------------------
-  void GerenciarStamina()
+    void GerenciarStamina()
     {
         if (estaCorrendo)
         {
@@ -127,91 +125,84 @@ public class PlayerMovement : MonoBehaviour
             }
 
             staminaAtual -= taxaDrenagemStamina * Time.deltaTime;
-            staminaAtual = Mathf.Clamp(staminaAtual, 0, staminaMaxima);
+            staminaAtual = Mathf.Clamp(staminaAtual, 0, staminaMaximaAtual);
             AtualizarUI();
 
-            // Se zerou a stamina, marca que entrou em estado de exaustão
+            // CHEGOU A ZERO: Liga tela vermelha e reduz o teto máximo em 25%
             if (staminaAtual <= 0)
             {
                 estaCorrendo = false;
-                jaDisparouExaustao = true;
+                telaVermelhaAtiva = true;
+
+                staminaMaximaAtual -= staminaMaximaOriginal * 0.25f;
+                staminaMaximaAtual = Mathf.Max(staminaMaximaAtual, 0f);
+
+                Debug.LogWarning($"Estamina ZEROU! Tela vermelha ligada. Novo teto máximo: {staminaMaximaAtual}");
             }
         }
-        else if (staminaAtual < staminaMaxima && corrotinaRegeneracao == null)
+        else if (staminaAtual < staminaMaximaAtual && corrotinaRegeneracao == null)
         {
+            // Começa a regenerar estamina se estiver abaixo do teto atual
             corrotinaRegeneracao = StartCoroutine(RegenerarStamina());
         }
 
-        // Se a stamina recuperou e passou de 50%, remove o estado de exaustão
-        if (staminaAtual >= 50f)
-        {
-            jaDisparouExaustao = false;
-        }
-
-        // Atualiza a visibilidade das bordas em tempo real
         AtualizarEfeitoBordas();
-    }
-
-    void AtualizarEfeitoBordas()
-    {
-        if (painelExaustao != null)
-        {
-            // Se está em exaustão, suaviza o Alpha até 0.4f (ou 1f para mais forte). Se recuperou >= 50, suaviza até 0f.
-            float alphaAlvo = jaDisparouExaustao ? 0.4f : 0f;
-            painelExaustao.alpha = Mathf.MoveTowards(painelExaustao.alpha, alphaAlvo, Time.deltaTime * 3f);
-        }
-    }
-
-    void GatilharEfeitoExaustao()
-    {
-        if (painelExaustao != null)
-        {
-            if (corrotinaEfeitoExaustao != null) StopCoroutine(corrotinaEfeitoExaustao);
-            corrotinaEfeitoExaustao = StartCoroutine(PulsarTelaExaustao());
-        }
-    }
-
-    IEnumerator PulsarTelaExaustao()
-    {
-        float tempo = 0f;
-        while (tempo < 0.2f)
-        {
-            tempo += Time.deltaTime;
-            painelExaustao.alpha = Mathf.Lerp(0f, 0.4f, tempo / 0.2f);
-            yield return null;
-        }
-
-        tempo = 0f;
-        while (tempo < 0.5f)
-        {
-            tempo += Time.deltaTime;
-            painelExaustao.alpha = Mathf.Lerp(0.4f, 0f, tempo / 0.5f);
-            yield return null;
-        }
-
-        painelExaustao.alpha = 0f;
     }
 
     IEnumerator RegenerarStamina()
     {
         yield return new WaitForSeconds(tempoParaRegenerar);
 
-        while (staminaAtual < staminaMaxima && !estaCorrendo)
+        while (staminaAtual < staminaMaximaAtual && !estaCorrendo)
         {
             staminaAtual += taxaRegeneracaoStamina * Time.deltaTime;
-            staminaAtual = Mathf.Clamp(staminaAtual, 0, staminaMaxima);
+            staminaAtual = Mathf.Clamp(staminaAtual, 0, staminaMaximaAtual);
             AtualizarUI();
             yield return null;
+        }
+
+        // QUANDO Atinge O MÁXIMO PERMITIDO (ex: 75%): apaga a tela vermelha e libera a corrida
+        if (staminaAtual >= staminaMaximaAtual && staminaMaximaAtual > 0)
+        {
+            telaVermelhaAtiva = false;
+            Debug.Log("Estamina regenerou até ao limite atual. Tela vermelha apagada e corrida liberada!");
         }
 
         corrotinaRegeneracao = null;
     }
 
+    // Método chamado ao interagir com a Máquina de Café
+    public void TomarCafe()
+    {
+        float valorRecuperado = staminaMaximaOriginal * 0.25f;
+
+        // Devolve os 25% perdidos ao teto máximo
+        staminaMaximaAtual = Mathf.Min(staminaMaximaAtual + valorRecuperado, staminaMaximaOriginal);
+
+        // Adiciona estamina atual
+        staminaAtual = Mathf.Min(staminaAtual + valorRecuperado, staminaMaximaAtual);
+
+        // Remove a tela vermelha imediatamente
+        telaVermelhaAtiva = false;
+
+        AtualizarUI();
+        Debug.Log($"Tomou café! Estamina Atual: {staminaAtual} | Máxima Atual: {staminaMaximaAtual}");
+    }
+
+    void AtualizarEfeitoBordas()
+    {
+        if (painelExaustao != null)
+        {
+            float alphaAlvo = telaVermelhaAtiva ? 0.6f : 0f;
+            painelExaustao.alpha = Mathf.MoveTowards(painelExaustao.alpha, alphaAlvo, Time.deltaTime * 4f);
+        }
+    }
+
     void AtualizarUI()
     {
-        if (barraStamina != null)
+        if (imagemEstaminaRadial != null)
         {
-            barraStamina.value = staminaAtual;
+            imagemEstaminaRadial.fillAmount = staminaAtual / staminaMaximaOriginal;
         }
     }
 }
