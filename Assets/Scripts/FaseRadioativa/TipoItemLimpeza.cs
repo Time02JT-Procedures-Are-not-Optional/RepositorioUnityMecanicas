@@ -25,13 +25,13 @@ public class ItemLimpezaTanque : MonoBehaviour
                 if (tipoItem == TipoItemLimpeza.DetectorRadiacao)
                 {
                     inventario.ColetarDetector();
+                    Destroy(gameObject); // Remove apenas o detector após coletar
                 }
                 else if (tipoItem == TipoItemLimpeza.Neutralizante)
                 {
                     inventario.ColetarNeutralizante(tipoNeutralizante);
+                    // O neutralizante não é destruído e permanece disponível no cenário
                 }
-
-                Destroy(gameObject); // Remove o item do mapa após coletar
             }
         }
     }
