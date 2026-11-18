@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.EventSystems;
 
 public class ControleCadernoUI : MonoBehaviour
 {
@@ -13,6 +14,7 @@ public class ControleCadernoUI : MonoBehaviour
 
     [Header("Componentes de UI")]
     public GameObject painelCaderno;
+    public GameObject menuLateral;   // Arraste o objeto do Menu Lateral aqui
     public Image cadernoImage;       // Componente Image do PainelCaderno que muda o desenho
 
     [Header("Botões das Setas (Opcional - oculta nos limites)")]
@@ -23,25 +25,54 @@ public class ControleCadernoUI : MonoBehaviour
     public PaginaCaderno[] paginas;
 
     private bool cadernoAberto = false;
+    private bool menuLateralAberto = false;
     private int paginaAtual = 0;
 
     void Start()
     {
         FecharCaderno();
+
+        // Garante que o menu lateral começa fechado
+        if (menuLateral != null)
+        {
+            menuLateralAberto = false;
+            menuLateral.SetActive(false);
+        }
+
         GarantirCursorLivre();
     }
 
     void Update()
     {
-        // Atalho pelo teclado ('J' ou 'TAB')
-        if (Input.GetKeyDown(KeyCode.J) || Input.GetKeyDown(KeyCode.Tab))
+        // A tecla TAB agora abre e fecha EXCLUSIVAMENTE o Menu Lateral
+        if (Input.GetKeyDown(KeyCode.Tab))
         {
-            AlternarCaderno();
+            AlternarMenuLateral();
         }
 
         // Mantém o cursor livre mesmo que outro script tente travá-lo
         GarantirCursorLivre();
     }
+
+    // --- CONTROLE DO MENU LATERAL (TECLA TAB) ---
+
+    public void AlternarMenuLateral()
+    {
+        if (menuLateral == null) return;
+
+        menuLateralAberto = !menuLateralAberto;
+        menuLateral.SetActive(menuLateralAberto);
+
+        // Limpa a seleção de botões para o Tab não ficar preso na navegação da UI
+        if (EventSystem.current != null)
+        {
+            EventSystem.current.SetSelectedGameObject(null);
+        }
+
+        GarantirCursorLivre();
+    }
+
+    // --- CONTROLE DO CADERNO (CLIQUE NA ABA AMARELA) ---
 
     public void AlternarCaderno()
     {
@@ -61,6 +92,7 @@ public class ControleCadernoUI : MonoBehaviour
     public void FecharCaderno()
     {
         cadernoAberto = false;
+
         if (painelCaderno != null)
             painelCaderno.SetActive(false);
 
@@ -75,13 +107,11 @@ public class ControleCadernoUI : MonoBehaviour
 
         paginaAtual = indicePagina;
 
-        // 1. Troca a imagem de fundo do caderno
         if (cadernoImage != null && paginas[indicePagina].spriteCaderno != null)
         {
             cadernoImage.sprite = paginas[indicePagina].spriteCaderno;
         }
 
-        // 2. Ativa apenas o conteúdo da página atual (se houver objetos filhos)
         for (int i = 0; i < paginas.Length; i++)
         {
             if (paginas[i].conteudoPainel != null)

@@ -27,6 +27,11 @@ public class MenuInicial : MonoBehaviour
     [Header("Configuração de Cena")]
     public string nomeCenaJogo = "SampleScene";
 
+    [Header("Efeitos Sonoros do Menu")]
+    public AudioSource fonteEfeitosMenu;    // AudioSource dedicado aos efeitos do menu
+    public AudioClip somMoverMarcador;      // Som curto de lápis riscando/movendo
+    public AudioClip somConfirmarOpcao;     // Som de lápis marcando o check ou virando página
+
     private int indiceSelecionado = 0;
     private Coroutine corrotinaRevelacao;
 
@@ -51,19 +56,23 @@ public class MenuInicial : MonoBehaviour
 
     void Update()
     {
+        if (!gameObject.activeInHierarchy) return;
         // 1. Navegação com W/S ou Setas Cima/Baixo
         if (Input.GetKeyDown(KeyCode.W) || Input.GetKeyDown(KeyCode.UpArrow))
         {
             MudarSelecao(-1);
+            TocarSomMover();
         }
         else if (Input.GetKeyDown(KeyCode.S) || Input.GetKeyDown(KeyCode.DownArrow))
         {
             MudarSelecao(1);
+            TocarSomMover();
         }
 
         // 2. Confirmação com Enter ou Espaço
         if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter) || Input.GetKeyDown(KeyCode.Space))
         {
+            TocarSomConfirmar();
             ExecutarOpcao();
         }
     }
@@ -134,7 +143,7 @@ public class MenuInicial : MonoBehaviour
                 Debug.Log("NRs selecionado!");
                 break;
             case 2: // Configurações
-                Debug.Log("Configurações selecionado!");
+                FindAnyObjectByType<GerenciadorConfiguracoes>().AbrirConfiguracoes();
                 break;
             case 3: // Créditos
                 Debug.Log("Créditos selecionado!");
@@ -154,5 +163,21 @@ public class MenuInicial : MonoBehaviour
     {
         Debug.Log("Saindo do jogo...");
         Application.Quit();
+    }
+    void TocarSomMover()
+    {
+        if (fonteEfeitosMenu != null && somMoverMarcador != null)
+        {
+            fonteEfeitosMenu.PlayOneShot(somMoverMarcador);
+        }
+    }
+
+    // 2. Onde você detecta que o jogador escolheu/confirmou uma opção (ex: Enter, Espaço ou Clique):
+    void TocarSomConfirmar()
+    {
+        if (fonteEfeitosMenu != null && somConfirmarOpcao != null)
+        {
+            fonteEfeitosMenu.PlayOneShot(somConfirmarOpcao);
+        }
     }
 }
