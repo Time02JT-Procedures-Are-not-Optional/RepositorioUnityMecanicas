@@ -8,9 +8,13 @@ public class ControleCadernoUI : MonoBehaviour
     public class PaginaCaderno
     {
         public string nomePagina;
-        public Sprite spriteCaderno;     // Ex: Tarefas-Dia01, Tarefas-INVENT-Dia02_2
+        public Sprite spriteCaderno;      // Ex: Tarefas-Dia01, Tarefas-INVENT-Dia02_2
         public GameObject conteudoPainel; // Conteúdo UI específico da página (opcional)
     }
+
+    [Header("Aba Verde - Bilhetes Encontrados")]
+    public GameObject paginaBilhetes;          // Painel com o fundo bilhetesVAZIO-01
+    public GameObject[] imagensBilhetesUI;     // Os 7 objetos Image posicionados sobre as silhuetas
 
     [Header("Componentes de UI")]
     public GameObject painelCaderno;
@@ -25,12 +29,13 @@ public class ControleCadernoUI : MonoBehaviour
     public PaginaCaderno[] paginas;
 
     private bool cadernoAberto = false;
+    private bool bilhetesAberto = false;
     private bool menuLateralAberto = false;
     private int paginaAtual = 0;
 
     void Start()
     {
-        FecharCaderno();
+        FecharTudo();
 
         // Garante que o menu lateral começa fechado
         if (menuLateral != null)
@@ -44,14 +49,46 @@ public class ControleCadernoUI : MonoBehaviour
 
     void Update()
     {
-        // A tecla TAB agora abre e fecha EXCLUSIVAMENTE o Menu Lateral
+        // A tecla TAB abre e fecha EXCLUSIVAMENTE o Menu Lateral
         if (Input.GetKeyDown(KeyCode.Tab))
         {
             AlternarMenuLateral();
         }
 
-        // Mantém o cursor livre mesmo que outro script tente travá-lo
         GarantirCursorLivre();
+    }
+
+    // --- CONTROLE DA ABA VERDE (BILHETES) ---
+
+    public void AbrirAbaVerde()
+    {
+        // Se os bilhetes já estiverem abertos, clicar na aba verde fecha tudo
+        if (bilhetesAberto)
+        {
+            FecharTudo();
+            return;
+        }
+
+        // Esconde o caderno de tarefas (Aba Amarela) e mostra apenas os bilhetes (Aba Verde)
+        cadernoAberto = false;
+        if (painelCaderno != null) painelCaderno.SetActive(false);
+
+        bilhetesAberto = true;
+        if (paginaBilhetes != null) paginaBilhetes.SetActive(true);
+
+        GarantirCursorLivre();
+    }
+
+    // Método chamado pelo objeto 3D quando o jogador coleta um bilhete no mapa
+    public void DesbloquearBilhete(int indiceBilhete)
+    {
+        if (imagensBilhetesUI != null && indiceBilhete >= 0 && indiceBilhete < imagensBilhetesUI.Length)
+        {
+            if (imagensBilhetesUI[indiceBilhete] != null)
+            {
+                imagensBilhetesUI[indiceBilhete].SetActive(true);
+            }
+        }
     }
 
     // --- CONTROLE DO MENU LATERAL (TECLA TAB) ---
@@ -63,7 +100,6 @@ public class ControleCadernoUI : MonoBehaviour
         menuLateralAberto = !menuLateralAberto;
         menuLateral.SetActive(menuLateralAberto);
 
-        // Limpa a seleção de botões para o Tab não ficar preso na navegação da UI
         if (EventSystem.current != null)
         {
             EventSystem.current.SetSelectedGameObject(null);
@@ -78,6 +114,20 @@ public class ControleCadernoUI : MonoBehaviour
     {
         if (painelCaderno == null) return;
 
+        // Se a aba verde (bilhetes) estava aberta, fecha ela e abre a aba amarela direto
+        if (bilhetesAberto)
+        {
+            bilhetesAberto = false;
+            if (paginaBilhetes != null) paginaBilhetes.SetActive(false);
+
+            cadernoAberto = true;
+            painelCaderno.SetActive(true);
+            AbrirPagina(paginaAtual);
+            GarantirCursorLivre();
+            return;
+        }
+
+        // Comportamento normal de abrir/fechar a aba amarela
         cadernoAberto = !cadernoAberto;
         painelCaderno.SetActive(cadernoAberto);
 
@@ -91,10 +141,19 @@ public class ControleCadernoUI : MonoBehaviour
 
     public void FecharCaderno()
     {
+        FecharTudo();
+    }
+
+    public void FecharTudo()
+    {
         cadernoAberto = false;
+        bilhetesAberto = false;
 
         if (painelCaderno != null)
             painelCaderno.SetActive(false);
+
+        if (paginaBilhetes != null)
+            paginaBilhetes.SetActive(false);
 
         GarantirCursorLivre();
     }

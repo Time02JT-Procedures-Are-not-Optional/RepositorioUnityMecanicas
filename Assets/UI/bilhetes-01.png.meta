@@ -215,7 +215,7 @@ TextureImporter:
         width: 643
         height: 246
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -224,6 +224,28 @@ TextureImporter:
       bones: []
       spriteID: 6a59840250ff55b45a4362b3dae77f82
       internalID: -2023441809
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: bilhetes-01_6
+      rect:
+        serializedVersion: 2
+        x: 1154
+        y: 220
+        width: 493
+        height: 293
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: bebe845784bac064abd9b4ea3454e169
+      internalID: 1007365390
       vertices: []
       indices: 
       edges: []
@@ -248,6 +270,7 @@ TextureImporter:
       bilhetes-01_3: 1657338113
       bilhetes-01_4: -1174230746
       bilhetes-01_5: -2023441809
+      bilhetes-01_6: 1007365390
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 
